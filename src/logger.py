@@ -9,6 +9,10 @@ LOG_DIR = os.getenv("COG5_LOG_DIR", "/var/log/cog5")
 os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, os.getenv("COG5_LOG_FILE", "cog5.log"))
 
+def configure_logging(level: str = "INFO"):
+    lvl = getattr(logging, level.upper(), logging.INFO)
+    logging.basicConfig(level=lvl, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
 def _format_json(record: logging.LogRecord) -> str:
     payload = {
         "ts": record.created,
