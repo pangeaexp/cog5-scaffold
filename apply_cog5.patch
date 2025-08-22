@@ -1,0 +1,558 @@
+--- a/pyproject.toml
++++ b/pyproject.toml
++[build-system]
++requires = ["setuptools>=61.0", "wheel"]
++build-backend = "setuptools.build_meta"
++
++[project]
++name = "cog5"
++version = "0.1.0"
++description = "Sistema Cognitivo Autónomo de Quinta Generación (scaffold)"
++authors = [{name="Your Name"}]
++readme = "README.md"
++requires-python = ">=3.8"
++dependencies = [
++    "numpy>=1.24",
++    "networkx>=3.1",
++    "matplotlib>=3.7",
++    "plotly>=5.15",
++    "pytest>=7.0",
++    "click>=8.0",
++]
++
++[tool.setuptools.packages.find]
++where = ["src"]
++exclude = ["tests*","notebooks*","docker*"]
++
++[project.scripts]
++cog5 = "cog5.cli:main"
++
+--- a/README.md
++++ b/README.md
++# Sistema Cognitivo Autónomo — Quinta Generación (cog5)
++
++Descripción breve:
++
++El proyecto "cog5" es un scaffold reproducible que implementa una versión simulada del
++Sistema Cognitivo Autónomo de Quinta Generación descrito en la especificación. Está pensado
++para servir como base para prototipado, experimentación y futuras integraciones con ML real.
++
++Características principales:
++- Arquitectura modular: core, nodes, evolution, analytics, viz, logger, cli
++- Simulación de 36 nodos con métricas de metacognición distribuida
++- Inicialización dinámica de red neuronal (simulada con graph + weights)
++- Algoritmo genético básico para evolución cognitiva
++- Reportes JSON/HTML y visualizaciones (network 3D, radar)
++- Tests básicos y CI
++
++Quickstart:
++
++1) Crear entorno virtual y instalar:
++
++   python -m venv .venv
++   source .venv/bin/activate  # on Windows: .venv\\Scripts\\activate
++   pip install --upgrade pip
++   pip install -e .
++
++2) Ejecutar demo de inicialización y generación de report:
++
++   cog5 init --nodes 36 --out demo_state.json
++   cog5 evolve --generations 5 --state demo_state.json --out demo_evolved.json
++   cog5 report --state demo_evolved.json --out report.html
++
++3) Ejecutar tests:
++
++   pytest -q
++
++Estructura:
++
++ (lista de archivos)
++
++Licencia: MIT
++
++Notas éticas y consideraciones: transparencia, control humano, límites de autonomía.
++
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+
++name: CI
++
++on: [push, pull_request]
++
++jobs:
++  test:
++    runs-on: ubuntu-latest
++    strategy:
++      matrix:
++        python-version: [3.8,3.9,3.10,3.11]
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-python@v4
++        with:
++          python-version: ${{ matrix.python-version }}
++      - name: Install deps
++        run: |
++          python -m pip install --upgrade pip
++          pip install -e .
++      - name: Run tests
++        run: pytest -q
++
+--- a/src/cog5/__init__.py
++++ b/src/cog5/__init__.py
+
++"""cog5 package init"""
++from .core import CogSystem
++from .cli import main
++
++__all__ = ["CogSystem", "main"]
++
+--- a/src/cog5/core.py
++++ b/src/cog5/core.py
+
++import json
++import logging
++from typing import Dict, Any, Optional
++
++from .nodes import NodeNetwork
++from .evolution import GeneticEngine
++from .analytics import MetricsCollector
++
++logger = logging.getLogger(__name__)
++
++DEFAULT_NODES = 36
++
++class CogSystem:
++    """
++    High-level orchestrator for the cognitive system.
++    """
++    def __init__(self, n_nodes: int = DEFAULT_NODES):
++        self.n_nodes = n_nodes
++        self.network = NodeNetwork(n_nodes)
++        self.metrics = MetricsCollector()
++        self.engine = GeneticEngine(self.network, self.metrics)
++
++    def initialize(self):
++        self.network.initialize_random()
++        self.metrics.collect(self.network)
++
++    def step_evolution(self, generations: int = 1):
++        history = []
++        for g in range(generations):
++            self.engine.evolve_one_generation()
++            self.metrics.collect(self.network)
++            history.append(self.metrics.snapshot())
++        return history
++
++    def save_state(self, path: str):
++        payload = {"n_nodes": self.n_nodes, "network": self.network.to_dict(), "metrics": self.metrics.data}
++        with open(path, "w", encoding="utf-8") as f:
++            json.dump(payload, f, indent=2)
++
++    @classmethod
++    def load_state(cls, path: str):
++        with open(path, "r", encoding="utf-8") as f:
++            payload = json.load(f)
++        inst = cls(payload.get("n_nodes", DEFAULT_NODES))
++        inst.network.from_dict(payload.get("network", {}))
++        inst.metrics.data = payload.get("metrics", {})
++        return inst
++
+--- a/src/cog5/nodes.py
++++ b/src/cog5/nodes.py
+
++import random
++import math
++from typing import Dict, Any, List
++import networkx as nx
++
++class Node:
++    def __init__(self, nid: int):
++        self.id = nid
++        # intrinsic properties
++        self.activation = random.random()
++        self.bias = random.uniform(-1, 1)
++        self.connections: Dict[int, float] = {}
++
++    def to_dict(self):
++        return {"id": self.id, "activation": self.activation, "bias": self.bias, "connections": self.connections}
++
++class NodeNetwork:
++    def __init__(self, n_nodes: int = 36):
++        self.n_nodes = n_nodes
++        self.nodes: Dict[int, Node] = {i: Node(i) for i in range(n_nodes)}
++        self.graph = nx.DiGraph()
++
++    def initialize_random(self, connectivity: float = 0.15):
++        self.graph.clear()
++        for i in range(self.n_nodes):
++            self.graph.add_node(i)
++        for i in range(self.n_nodes):
++            for j in range(self.n_nodes):
++                if i == j:
++                    continue
++                if random.random() < connectivity:
++                    weight = random.uniform(-1, 1)
++                    self.graph.add_edge(i, j, weight=weight)
++                    self.nodes[i].connections[j] = weight
++
++    def to_dict(self):
++        edges = [{"u": u, "v": v, "weight": d.get("weight", 0)} for u, v, d in self.graph.edges(data=True)]
++        return {"n_nodes": self.n_nodes, "nodes": {i: self.nodes[i].to_dict() for i in self.nodes}, "edges": edges}
++
++    def from_dict(self, payload: Dict[str, Any]):
++        self.n_nodes = payload.get("n_nodes", self.n_nodes)
++        nodes = payload.get("nodes", {})
++        self.nodes = {int(k): Node(int(k)) for k in nodes.keys()}
++        for k, v in nodes.items():
++            n = self.nodes[int(k)]
++            n.activation = v.get("activation", n.activation)
++            n.bias = v.get("bias", n.bias)
++            n.connections = v.get("connections", {})
++        self.graph = nx.DiGraph()
++        for e in payload.get("edges", []):
++            self.graph.add_edge(e["u"], e["v"], weight=e.get("weight", 0))
++
++    def mean_abs_weight(self):
++        ws = [abs(d.get("weight", 0)) for _, _, d in self.graph.edges(data=True)]
++        return sum(ws) / (len(ws) or 1)
++
++    def density(self):
++        possible = self.n_nodes * (self.n_nodes - 1)
++        return self.graph.number_of_edges() / possible if possible > 0 else 0.0
++
+--- a/src/cog5/evolution.py
++++ b/src/cog5/evolution.py
+
++import random
++from typing import Any
++
++class GeneticEngine:
++    def __init__(self, network, metrics, mutation_rate: float = 0.05, crossover_rate: float = 0.5):
++        self.network = network
++        self.metrics = metrics
++        self.mutation_rate = mutation_rate
++        self.crossover_rate = crossover_rate
++        # internal generation counter
++        self.generation = 0
++
++    def _mutate(self):
++        # mutate some edges' weights
++        for u, v, d in list(self.network.graph.edges(data=True)):
++            if random.random() < self.mutation_rate:
++                old = d.get("weight", 0)
++                delta = random.uniform(-0.5, 0.5)
++                new = max(-1.0, min(1.0, old + delta))
++                self.network.graph[u][v]["weight"] = new
++                self.network.nodes[u].connections[v] = new
++
++    def _crossover(self):
++        # simple crossover: randomly rewire a small subset of edges
++        if random.random() > self.crossover_rate:
++            return
++        nodes = list(self.network.graph.nodes)
++        a = random.choice(nodes)
++        b = random.choice(nodes)
++        # swap outgoing neighbors sets partially
++        outs_a = list(self.network.graph.successors(a))
++        outs_b = list(self.network.graph.successors(b))
++        for i in range(min(len(outs_a), len(outs_b))):
++            if random.random() < 0.5:
++                wa = self.network.graph[a][outs_a[i]]["weight"]
++                wb = self.network.graph[b][outs_b[i]]["weight"]
++                self.network.graph[a][outs_a[i]]["weight"] = wb
++                self.network.graph[b][outs_b[i]]["weight"] = wa
++                self.network.nodes[a].connections[outs_a[i]] = wb
++                self.network.nodes[b].connections[outs_b[i]] = wa
++
++    def evaluate_fitness(self):
++        # Placeholder fitness combining density and mean abs weight (more connectivity + moderate weights)
++        density = self.network.density()
++        mean_w = self.network.mean_abs_weight()
++        fitness = (1.0 - abs(0.5 - mean_w)) * density
++        # track in metrics
++        self.metrics.data.setdefault("fitness_history", []).append(fitness)
++        return fitness
++
++    def evolve_one_generation(self):
++        self._mutate()
++        self._crossover()
++        fitness = self.evaluate_fitness()
++        self.generation += 1
++        return {"generation": self.generation, "fitness": fitness}
++
+--- a/src/cog5/analytics.py
++++ b/src/cog5/analytics.py
+
++import math
++import statistics
++from typing import Dict, Any
++
++class MetricsCollector:
++    def __init__(self):
++        self.data: Dict[str, Any] = {}
++
++    def collect(self, network):
++        # compute coherence (inverse of variance of activations), synchronization (mean activation), complexity (edges/nodes), entropy (of weights distribution), potential adaptive (heuristic)
++        activations = [network.nodes[i].activation for i in network.nodes]
++        coherence = 0.0
++        if activations:
++            coherence = 1.0 / (1.0 + statistics.pvariance(activations))
++        synchronization = statistics.mean(activations) if activations else 0.0
++        complexity = network.graph.number_of_edges() / max(1, network.n_nodes)
++        weights = [d.get("weight", 0) for _, _, d in network.graph.edges(data=True)]
++        if weights:
++            # entropy over discretized bins
++            bins = 10
++            hist = [0] * bins
++            for w in weights:
++                idx = min(bins - 1, int((w + 1) / 2 * bins))
++                hist[idx] += 1
++            probs = [h / sum(hist) for h in hist if sum(hist) > 0]
++            entropy = -sum(p * math.log2(p) for p in probs if p > 0)
++        else:
++            entropy = 0.0
++        potential = complexity * (1.0 - abs(0.5 - (statistics.mean([abs(w) for w in weights]) if weights else 0.0)))
++
++        self.data.setdefault("snapshots", []).append({
++            "coherence": coherence,
++            "synchronization": synchronization,
++            "complexity": complexity,
++            "entropy": entropy,
++            "potential": potential
++        })
++
++    def snapshot(self):
++        return self.data.get("snapshots", [])[-1] if self.data.get("snapshots") else {}
++
+--- a/src/cog5/viz.py
++++ b/src/cog5/viz.py
+
++import json
++import math
++import networkx as nx
++import matplotlib.pyplot as plt
++import plotly.graph_objects as go
++from typing import Dict, Any
++
++def render_network_3d(network, out_path: str = None):
++    # simple 3D layout using spring layout in 2D then z from node id
++    G = network.graph
++    pos2d = nx.spring_layout(G, dim=2, seed=42)
++    xs = []
++    ys = []
++    zs = []
++    edges_x = []
++    edges_y = []
++    edges_z = []
++    for n, p in pos2d.items():
++        xs.append(p[0])
++        ys.append(p[1])
++        zs.append(n * 0.02)
++    for u, v in G.edges():
++        edges_x += [pos2d[u][0], pos2d[v][0], None]
++        edges_y += [pos2d[u][1], pos2d[v][1], None]
++        edges_z += [u * 0.02, v * 0.02, None]
++
++    edge_trace = go.Scatter3d(x=edges_x, y=edges_y, z=edges_z, mode='lines', line=dict(width=2, color='rgba(100,100,100,0.6)'), hoverinfo='none')
++    node_trace = go.Scatter3d(x=xs, y=ys, z=zs, mode='markers+text', marker=dict(size=6, color='blue'), text=[str(n) for n in G.nodes()])
++
++    fig = go.Figure(data=[edge_trace, node_trace])
++    fig.update_layout(scene=dict(xaxis=dict(showbackground=False), yaxis=dict(showbackground=False), zaxis=dict(showbackground=False)))
++    if out_path:
++        fig.write_html(out_path)
++    return fig
++
++def render_radar(metrics_snapshot: Dict[str, Any], out_path: str = None):
++    categories = ["coherence", "synchronization", "complexity", "entropy", "potential"]
++    values = [metrics_snapshot.get(c, 0) for c in categories]
++    # close the loop
++    values += values[:1]
++    categories += categories[:1]
++    fig = go.Figure()
++    fig.add_trace(go.Scatterpolar(r=values, theta=categories, fill='toself'))
++    fig.update_layout(polar=dict(radialaxis=dict(visible=True)))
++    if out_path:
++        fig.write_html(out_path)
++    return fig
++
++def render_report_html(state: Dict[str, Any], out_path: str):
++    metrics = state.get("metrics", {})
++    snapshots = metrics.get("snapshots", [])
++    latest = snapshots[-1] if snapshots else {}
++    # create simple HTML
++    html = f"<html><head><title>Cog5 Report</title></head><body><h1>Cog5 Report</h1><pre>{json.dumps(latest, indent=2)}</pre></body></html>"
++    with open(out_path, "w", encoding="utf-8") as f:
++        f.write(html)
++    return out_path
++
+--- a/src/cog5/logger.py
++++ b/src/cog5/logger.py
+
++import logging
++
++def configure_logging(level: str = "INFO"):
++    lvl = getattr(logging, level.upper(), logging.INFO)
++    logging.basicConfig(level=lvl, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
++
+--- a/src/cog5/cli.py
++++ b/src/cog5/cli.py
+
++import json
++import click
++from .core import CogSystem
++from .logger import configure_logging
++from .viz import render_network_3d, render_radar, render_report_html
++
++@click.group()
++def main():
++    """cog5 CLI"""
++    pass
++
++@main.command()
++@click.option("--nodes", default=36, help="Number of nodes")
++@click.option("--out", default="cog_state.json", help="Output path for state")
++def init(nodes, out):
++    """Initialize system"""
++    configure_logging()
++    cs = CogSystem(n_nodes=nodes)
++    cs.initialize()
++    cs.save_state(out)
++    click.echo(f"Initialized with {nodes} nodes -> {out}")
++
++@main.command()
++@click.option("--generations", default=1, help="Number of generations")
++@click.option("--state", required=True, help="Input state file")
++@click.option("--out", default="evolved_state.json", help="Output state file")
++def evolve(generations, state, out):
++    configure_logging()
++    cs = CogSystem.load_state(state)
++    history = cs.step_evolution(generations)
++    cs.save_state(out)
++    click.echo(f"Evolved for {generations} generations -> {out}")
++
++@main.command()
++@click.option("--state", required=True, help="State file to report on")
++@click.option("--out", default="report.html", help="HTML output")
++def report(state, out):
++    configure_logging()
++    with open(state, "r", encoding="utf-8") as f:
++        s = json.load(f)
++    render_report_html(s, out)
++    click.echo(f"Report generated -> {out}")
++
++if __name__ == "__main__":
++    main()
++
+--- a/tests/test_basic.py
++++ b/tests/test_basic.py
+
++import json
++import tempfile
++from cog5.core import CogSystem
++
++def test_initialize_and_save_load(tmp_path):
++    p = tmp_path / "state.json"
++    cs = CogSystem(n_nodes=12)
++    cs.initialize()
++    cs.save_state(str(p))
++    with open(p, "r", encoding="utf-8") as f:
++        data = json.load(f)
++    assert "network" in data
++    cs2 = CogSystem.load_state(str(p))
++    assert cs2.n_nodes == 12
++
++def test_evolution_improves_fitness():
++    cs = CogSystem(n_nodes=10)
++    cs.initialize()
++    before = cs.engine.evaluate_fitness()
++    cs.step_evolution(3)
++    after = cs.engine.evaluate_fitness()
++    assert isinstance(before, float)
++    assert isinstance(after, float)
++
+--- a/notebooks/README.md
++++ b/notebooks/README.md
+
++# Notebooks for cog5
++
++The notebooks folder contains example notebooks demonstrating initialization, evolution and visualization.
++
++Open with Jupyter Lab:
++
++  jupyter lab notebooks/
++
++Example notebook: notebooks/example.ipynb
++
+--- a/notebooks/example.ipynb
++++ b/notebooks/example.ipynb
+
++{
++ "cells": [
++  {
++   "cell_type": "markdown",
++   "metadata": {},
++   "source": [
++    "# Cog5 example\n",
++    "\n",
++    "Initialize, evolve and render a simple report."
++   ]
++  },
++  {
++   "cell_type": "code",
++   "execution_count": null,
++   "metadata": {},
++   "outputs": [],
++   "source": [
++    "!pip install -e ..\n",
++    "from cog5.core import CogSystem\n",
++    "cs = CogSystem(n_nodes=12)\n",
++    "cs.initialize()\n",
++    "cs.save_state('demo_state.json')\n",
++    "cs.step_evolution(2)\n",
++    "cs.save_state('demo_evolved.json')\n",
++    "print('Done')\n"
++   ]
++  }
++ ],
++ "metadata": { "kernelspec": {"display_name": "Python 3","language":"python","name":"python3"}, "language_info": {"name":"python"} },
++ "nbformat": 4,
++ "nbformat_minor": 5
++}
++
+--- a/LICENSE
++++ b/LICENSE
+
++MIT License
++
++Copyright (c) 2025
++
++Permission is hereby granted, free of charge, to any person obtaining a copy...
++
+--- a/INSTALL_INSTRUCTIONS.txt
++++ b/INSTALL_INSTRUCTIONS.txt
+
++Apply patch file:
++
++  Save apply_cog5.patch and run:
++
++    git checkout -b feat/cog5-scaffold
++    git apply apply_cog5.patch || true
++    git add -A
++    git commit -m "Add cog5 scaffold" || true
++
++Install and run demo:
++
++  python -m venv .venv
++  source .venv/bin/activate
++  pip install --upgrade pip
++  pip install -e .
++
++Run quick demo:
++
++  cog5 init --nodes 36 --out demo_state.json
++  cog5 evolve --generations 5 --state demo_state.json --out demo_evolved.json
++  cog5 report --state demo_evolved.json --out report.html
++
++Run tests:
++  pytest -q
++
