@@ -1,0 +1,30 @@
+# poetry.lock (ejemplo simplificado, no generar con poetry install)
+[[package]]
+name = "flask"
+version = "2.2.5"
+description = "A simple framework for building complex web applications."
+category = "main"
+optional = false
+python-versions = ">=3.8"
+
+[[package]]
+name = "prometheus-client"
+version = "0.16.0"
+description = "Prometheus instrumentation library for Python"
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[[package]]
+name = "pytest"
+version = "7.3.1"
+description = "pytest: simple powerful testing with Python"
+category = "dev"
+optional = false
+python-versions = ">=3.8"
+
+[metadata]
+content-hash = "EXAMPLE_HASH"
+python-versions = ">=3.8"
+name = "cog5_scaffold"
+version = "0.0.0"

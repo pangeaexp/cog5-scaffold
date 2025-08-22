@@ -1,0 +1,20 @@
+Estructura (raíz del proyecto)
+- src/
+  - logger.py
+  - core.py
+  - api/
+    - observability.py
+  - cog5/
+    - models/
+      - base.py
+      - fake.py
+      - factory.py
+- tests/
+  - test_models.py
+  - test_path_safety.py
+- .github/
+  - workflows/
+    - ci.yml
+- pyproject.toml (opcional placeholder)
+- README.md (breve)
+- create_zip.sh (script opcional para crear el ZIP)

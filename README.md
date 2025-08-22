@@ -40,3 +40,15 @@ Estructura:
 Licencia: MIT
 
 Notas éticas y consideraciones: transparencia, control humano, límites de autonomía.
+
+# cog5_scaffold — minimal additions
+
+Archivos añadidos:
+- logger.py — logger central con rotating file + optional JSON
+- core.py — validación de paths, límites de upload, wrapper de subprocess con timeout
+- api/observability.py — /healthz y /metrics (Flask + prometheus_client)
+- models/* — IModel, FakeModel, factory
+- tests/* — tests básicos
+- .github/workflows/ci.yml — CI snippet con cache pip y soporte Poetry / requirements.txt
+
+Ajusta rutas e imports según tu layout.
