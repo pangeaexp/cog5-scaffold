@@ -5,7 +5,7 @@ import json
 import os
 from typing import Optional
 
-LOG_DIR = os.getenv("COG5_LOG_DIR", "/var/log/cog5")
+LOG_DIR = os.getenv("COG5_LOG_DIR", "./log/cog5")
 os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, os.getenv("COG5_LOG_FILE", "cog5.log"))
 
