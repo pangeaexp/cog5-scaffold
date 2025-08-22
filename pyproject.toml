@@ -10,17 +10,16 @@ description = "Scaffold additions for cog5: logging, safety, observability, mode
 readme = "README.md"
 requires-python = ">=3.9,<3.12"
 license = "MIT"
-
-[project.dependencies]
-flask = ">=2.2,<3"
-prometheus-client = ">=0.15,<1"
-
+dependencies = [
+    "flask>=2.2",
+    "prometheus-client>=0.15",
+]
 [project.optional-dependencies]
 # leave empty or add extras
 
 [tool.poetry]
 # keep tool.poetry section for compatibility with Poetry 2.x metadata commands
-authors = ["Your Name <you@example.com>"]
+authors = ["magnus <you@example.com>"]
 
 [tool.poetry.group]
 [tool.poetry.group.dev]
