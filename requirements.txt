@@ -1,6 +1,6 @@
-# requirements.txt ---
+#cog5
+pytest>=7.0,<8
 flask>=2.2,<3
 prometheus-client>=0.15,<1
-pytest>=7.0,<8
 # opcional (si usas poetry/pip-tools en CI):
 # pip-tools==6.14.0
