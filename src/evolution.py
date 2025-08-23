@@ -6,8 +6,6 @@ import time
 from typing import List, Callable, Optional, Dict, Any, Tuple
 from dataclasses import dataclass, field
 
-
-
 @dataclass(eq=False)
 class Individual:
     genotype: List[Any]
@@ -313,4 +311,4 @@ class GeneticEngine:
         self.generation += 1
         return {"generation": self.generation, "fitness": fitness}
 
-__all__ = ["Individual", "GeneticAlgorithm", "non_dominated_sort", "crowding_distance"]
+__all__ = ["Individual", "GeneticAlgorithm", "non_dominated_sort", "crowding_distance", "GeneticEngine"]
