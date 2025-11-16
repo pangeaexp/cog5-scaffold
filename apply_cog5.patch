@@ -1,5 +1,6 @@
 --- a/pyproject.toml
 +++ b/pyproject.toml
+@@ -0,0 +1,44 @@
 +[build-system]
 +requires = ["setuptools>=61.0", "wheel"]
 +build-backend = "setuptools.build_meta"
@@ -29,6 +30,7 @@
 +
 --- a/README.md
 +++ b/README.md
+@@ -0,0 +1,220 @@
 +# Sistema Cognitivo Autónomo — Quinta Generación (cog5)
 +
 +Descripción breve:
@@ -74,7 +76,7 @@
 +
 --- a/.github/workflows/ci.yml
 +++ b/.github/workflows/ci.yml
-
+@@ -0,0 +1,44 @@
 +name: CI
 +
 +on: [push, pull_request]
@@ -99,7 +101,7 @@
 +
 --- a/src/cog5/__init__.py
 +++ b/src/cog5/__init__.py
-
+@@ -0,0 +1,20 @@
 +"""cog5 package init"""
 +from .core import CogSystem
 +from .cli import main
@@ -108,7 +110,7 @@
 +
 --- a/src/cog5/core.py
 +++ b/src/cog5/core.py
-
+@@ -0,0 +1,260 @@
 +import json
 +import logging
 +from typing import Dict, Any, Optional
@@ -159,7 +161,7 @@
 +
 --- a/src/cog5/nodes.py
 +++ b/src/cog5/nodes.py
-
+@@ -0,0 +1,260 @@
 +import random
 +import math
 +from typing import Dict, Any, List
@@ -222,7 +224,7 @@
 +
 --- a/src/cog5/evolution.py
 +++ b/src/cog5/evolution.py
-
+@@ -0,0 +1,220 @@
 +import random
 +from typing import Any
 +
@@ -282,7 +284,7 @@
 +
 --- a/src/cog5/analytics.py
 +++ b/src/cog5/analytics.py
-
+@@ -0,0 +1,220 @@
 +import math
 +import statistics
 +from typing import Dict, Any
@@ -326,7 +328,7 @@
 +
 --- a/src/cog5/viz.py
 +++ b/src/cog5/viz.py
-
+@@ -0,0 +1,260 @@
 +import json
 +import math
 +import networkx as nx
@@ -387,7 +389,7 @@
 +
 --- a/src/cog5/logger.py
 +++ b/src/cog5/logger.py
-
+@@ -0,0 +1,120 @@
 +import logging
 +
 +def configure_logging(level: str = "INFO"):
@@ -396,7 +398,7 @@
 +
 --- a/src/cog5/cli.py
 +++ b/src/cog5/cli.py
-
+@@ -0,0 +1,260 @@
 +import json
 +import click
 +from .core import CogSystem
@@ -445,7 +447,7 @@
 +
 --- a/tests/test_basic.py
 +++ b/tests/test_basic.py
-
+@@ -0,0 +1,120 @@
 +import json
 +import tempfile
 +from cog5.core import CogSystem
@@ -472,7 +474,7 @@
 +
 --- a/notebooks/README.md
 +++ b/notebooks/README.md
-
+@@ -0,0 +1,80 @@
 +# Notebooks for cog5
 +
 +The notebooks folder contains example notebooks demonstrating initialization, evolution and visualization.
@@ -485,7 +487,7 @@
 +
 --- a/notebooks/example.ipynb
 +++ b/notebooks/example.ipynb
-
+@@ -0,0 +1,120 @@
 +{
 + "cells": [
 +  {
@@ -521,7 +523,7 @@
 +
 --- a/LICENSE
 +++ b/LICENSE
-
+@@ -0,0 +1,24 @@
 +MIT License
 +
 +Copyright (c) 2025
@@ -530,7 +532,7 @@
 +
 --- a/INSTALL_INSTRUCTIONS.txt
 +++ b/INSTALL_INSTRUCTIONS.txt
-
+@@ -0,0 +1,160 @@
 +Apply patch file:
 +
 +  Save apply_cog5.patch and run:

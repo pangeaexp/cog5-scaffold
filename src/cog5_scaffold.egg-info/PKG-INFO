@@ -1,3 +1,15 @@
+Metadata-Version: 2.4
+Name: cog5_scaffold
+Version: 0.0.0
+Summary: Scaffold additions for cog5: logging, safety, observability, model interface
+License-Expression: MIT
+Requires-Python: <3.12,>=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: flask>=2.2
+Requires-Dist: prometheus-client>=0.15
+Dynamic: license-file
+
 # Sistema Cognitivo Autónomo — Quinta Generación (cog5)
 
 Descripción breve:
